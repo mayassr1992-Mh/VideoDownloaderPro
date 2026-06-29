@@ -159,3 +159,4 @@ warn_on_root = 1
 # android.copy_libs = 
 # android.no-byte-compile-python = 
 # android.release_artifact = apk
+android.accept_sdk_license = True
