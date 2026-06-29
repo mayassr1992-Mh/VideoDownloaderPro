@@ -1,0 +1,102 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [main, master]
+    paths-ignore:
+      - '**.md'
+      - '.gitignore'
+  pull_request:
+    branches: [main, master]
+  # Allow manual trigger from Actions tab
+  workflow_dispatch:
+
+env:
+  PYTHON_VERSION: '3.10'
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      # ─────────────────────────────────────────
+      # 1. Checkout source
+      # ─────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ─────────────────────────────────────────
+      # 2. Set up Python
+      # ─────────────────────────────────────────
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      # ─────────────────────────────────────────
+      # 3. Cache buildozer downloads & builds
+      # ─────────────────────────────────────────
+      - name: Cache buildozer state
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.buildozer
+            ./.buildozer
+          key: buildozer-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}
+          restore-keys: |
+            buildozer-${{ runner.os }}-
+
+      # ─────────────────────────────────────────
+      # 4. Install system dependencies
+      # ─────────────────────────────────────────
+      - name: Install system packages
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -yqq \
+            python3-pip build-essential git \
+            ffmpeg libsdl2-dev libsdl2-image-dev \
+            libsdl2-mixer-dev libsdl2-ttf-dev \
+            libportmidi-dev libswscale-dev libavformat-dev \
+            libavcodec-dev zlib1g-dev libgles2-mesa-dev \
+            autoconf automake libtool pkg-config \
+            libncurses5-dev libncursesw5-dev \
+            libffi-dev libssl-dev libsqlite3-dev \
+            zip unzip openjdk-17-jdk
+
+      # ─────────────────────────────────────────
+      # 5. Install buildozer & Cython
+      # ─────────────────────────────────────────
+      - name: Install Buildozer
+        run: |
+          pip install --upgrade pip
+          pip install buildozer cython
+
+      # ─────────────────────────────────────────
+      # 6. Build APK
+      # ─────────────────────────────────────────
+      - name: Build APK with Buildozer
+        run: |
+          buildozer android debug
+
+      # ─────────────────────────────────────────
+      # 7. Upload APK artifact
+      # ─────────────────────────────────────────
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: VideoDownloaderPro-APK
+          path: bin/*.apk
+          if-no-files-found: error
+
+      # ─────────────────────────────────────────
+      # 8. (Optional) Upload to GitHub Releases
+      # ─────────────────────────────────────────
+      - name: Upload to Release (if tagged)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: bin/*.apk
+          name: Release ${{ github.ref_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
