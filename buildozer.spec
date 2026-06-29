@@ -66,6 +66,14 @@ android.window_background = #0a0a0a
 # Enable Python 3 support
 android.allow_backup = True
 
+# Point buildozer to pre-installed SDK paths (GitHub Actions CI)
+# These paths match the environment variables in .github/workflows/build.yml
+android.sdk_path = /home/runner/.buildozer/android/platform/android-sdk
+android.ndk_path = /home/runner/.buildozer/android/platform/android-ndk-r25b
+
+# Skip auto-downloading SDK/NDK if already present (speeds up CI)
+android.skip_update = False
+
 # Services (if any)
 # services =
 
@@ -159,4 +167,3 @@ warn_on_root = 1
 # android.copy_libs = 
 # android.no-byte-compile-python = 
 # android.release_artifact = apk
-android.accept_sdk_license = True
